@@ -24,12 +24,26 @@ RUN apk add --no-cache --virtual .build-deps curl \
   && apk del --no-cache --purge .build-deps
 
 
+FROM base as helm-build
+
+ENV HELM_VERSION=2.14.3
+
+RUN apk add --no-cache --virtual .build-deps curl \
+  && curl -L https://storage.googleapis.com/kubernetes-helm/helm-v${HELM_VERSION}-linux-amd64.tar.gz -o helm.tar.gz \
+  && tar -xvf helm.tar.gz \
+  && mv linux-amd64/helm /usr/local/bin \
+  && chmod +x /usr/local/bin/helm \
+  && apk del --no-cache --purge .build-deps \
+  && rm -Rf linux-amd64 helm.tar.gz
+
+
 FROM base
 
 RUN apk add --no-cache ca-certificates
 
 COPY --from=doctl-build /usr/local/bin/doctl /usr/local/bin/doctl
 COPY --from=kubectl-build /usr/local/bin/kubectl /usr/local/bin/kubectl
+COPY --from=helm-build /usr/local/bin/helm /usr/local/bin/helm
 
 ENTRYPOINT ["/usr/local/bin/doctl"]
 CMD ["help"]
