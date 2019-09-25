@@ -14,11 +14,22 @@ RUN mkdir /lib64 \
   && apk del --no-cache --purge .build-deps
 
 
+FROM base as kubectl-build
+
+ENV KUBECTL_VERSION=1.16.0
+
+RUN apk add --no-cache --virtual .build-deps curl \
+  && curl -L https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
+  && chmod +x /usr/local/bin/kubectl \
+  && apk del --no-cache --purge .build-deps
+
+
 FROM base
 
 RUN apk add --no-cache ca-certificates
 
 COPY --from=doctl-build /usr/local/bin/doctl /usr/local/bin/doctl
+COPY --from=kubectl-build /usr/local/bin/kubectl /usr/local/bin/kubectl
 
 ENTRYPOINT ["/usr/local/bin/doctl"]
 CMD ["help"]
